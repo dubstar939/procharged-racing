@@ -24,7 +24,8 @@ async function startServer() {
     name: string;
     speed: number;
     laps: number;
-    bestLapTime: number;
+    bestLapTime: number; // milliseconds, Infinity if none
+    lastLapStart: number;
     nitro: number;
     nitroActive: boolean;
     drifting: boolean;
@@ -32,28 +33,25 @@ async function startServer() {
     isCPU?: boolean;
   };
 
-  const players: Record<string, Player> = {};
-  let gameStatus: 'waiting' | 'racing' = 'waiting';
+  type Room = {
+    id: string;
+    players: Record<string, Player>;
+    status: 'waiting' | 'racing';
+    hostId: string;
+    raceMode: string;
+    cpuCount: number;
+  };
+
+  const rooms: Record<string, Room> = {};
+  const socketRoomMap: Record<string, string> = {};
 
   const TRACK_WIDTH = 1200;
   const TRACK_HEIGHT = 850;
 
-  const TRACK_SEGMENTS = [
-    { start: {x: 150, y: 500}, end: {x: 450, y: 500} },
-    { start: {x: 450, y: 500}, end: {x: 450, y: 300} },
-    { start: {x: 450, y: 300}, end: {x: 300, y: 300} },
-    { start: {x: 300, y: 300}, end: {x: 300, y: 100} },
-    { start: {x: 300, y: 100}, end: {x: 750, y: 100} },
-    { start: {x: 750, y: 100}, end: {x: 750, y: 400} },
-    { start: {x: 750, y: 400}, end: {x: 600, y: 400} },
-    { start: {x: 600, y: 400}, end: {x: 600, y: 600} },
-    { start: {x: 600, y: 600}, end: {x: 950, y: 600} },
-    { start: {x: 950, y: 600}, end: {x: 950, y: 150} },
-    { start: {x: 950, y: 150}, end: {x: 1100, y: 150} },
-    { start: {x: 1100, y: 150}, end: {x: 1100, y: 750} },
-    { start: {x: 1100, y: 750}, end: {x: 150, y: 750} },
-    { start: {x: 150, y: 750}, end: {x: 150, y: 500} }
-  ];
+  // Helper to generate room code
+  const generateRoomCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  };
 
   const COLORS = [
     { name: 'Red', value: 'hsl(0, 70%, 50%)' },
@@ -76,6 +74,7 @@ async function startServer() {
     speed: 0,
     laps: 0,
     bestLapTime: Infinity,
+    lastLapStart: Date.now(),
     nitro: 100,
     nitroActive: false,
     drifting: false,
@@ -83,112 +82,147 @@ async function startServer() {
     isCPU,
   });
 
-  function distToSegment(p: {x: number, y: number}, v: {x: number, y: number}, w: {x: number, y: number}) {
-    const l2 = (v.x - w.x)**2 + (v.y - w.y)**2;
-    if (l2 === 0) return Math.sqrt((p.x - v.x)**2 + (p.y - v.y)**2);
-    let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
-    t = Math.max(0, Math.min(1, t));
-    return Math.sqrt((p.x - (v.x + t * (w.x - v.x)))**2 + (p.y - (v.y + t * (w.y - v.y)))**2);
-  }
-
-  // AI Update Loop
-  setInterval(() => {
-    if (gameStatus !== 'racing') return;
-
-    Object.values(players).forEach(p => {
-      if (p.isCPU) {
-        // Find closest segment
-        let minDist = Infinity;
-        let closestSeg = TRACK_SEGMENTS[0];
-        TRACK_SEGMENTS.forEach(seg => {
-          const d = distToSegment({x: p.x, y: p.y}, seg.start, seg.end);
-          if (d < minDist) {
-            minDist = d;
-            closestSeg = seg;
-          }
-        });
-
-        // Target: end of current segment
-        const dx = closestSeg.end.x - p.x;
-        const dy = closestSeg.end.y - p.y;
-        const targetAngle = Math.atan2(dy, dx);
-
-        let angleDiff = targetAngle - p.angle;
-        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-        p.angle += angleDiff * 0.05;
-        p.speed = Math.min(p.speed + 0.04, 2.0);
-
-        p.x += Math.cos(p.angle) * p.speed;
-        p.y += Math.sin(p.angle) * p.speed;
-
-        io.emit("playerMoved", p);
-      }
-    });
-  }, 1000 / 60);
-
   // Socket.io Logic
   io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
 
-    const colorInfo = COLORS[Object.keys(players).length % COLORS.length];
-    const newPlayer = createPlayer(socket.id, colorInfo);
-    players[socket.id] = newPlayer;
-
-    socket.emit("init", { id: socket.id, players });
-    socket.broadcast.emit("playerJoined", newPlayer);
-
-    socket.on("startGame", ({ cpuCount }) => {
-      gameStatus = 'racing';
+    // Room Management
+    socket.on("createRoom", () => {
+      const roomId = generateRoomCode();
+      const colorInfo = COLORS[0];
+      const newPlayer = createPlayer(socket.id, colorInfo);
       
-      // Add CPUs
-      for (let i = 0; i < cpuCount; i++) {
-        const cpuId = `cpu_${i}`;
-        const cpuColor = COLORS[(Object.keys(players).length) % COLORS.length];
-        const carTypes = ['speedster', 'drifter', 'balanced'];
-        const cpuPlayer = createPlayer(cpuId, cpuColor, carTypes[i % 3], true);
-        players[cpuId] = cpuPlayer;
-      }
-
-      io.emit("gameStarted", { players });
+      rooms[roomId] = {
+        id: roomId,
+        players: { [socket.id]: newPlayer },
+        status: 'waiting',
+        hostId: socket.id,
+        raceMode: 'circuit',
+        cpuCount: 0
+      };
+      
+      socketRoomMap[socket.id] = roomId;
+      socket.join(roomId);
+      
+      socket.emit("roomCreated", { roomId, players: rooms[roomId].players, isHost: true, raceMode: 'circuit', cpuCount: 0 });
     });
 
-    socket.on("playerMovement", (movementData) => {
-      const player = players[socket.id];
-      if (player) {
-        player.x = movementData.x;
-        player.y = movementData.y;
-        player.angle = movementData.angle;
-        player.speed = movementData.speed;
-        player.nitro = movementData.nitro;
-        player.nitroActive = movementData.nitroActive;
-        player.drifting = movementData.drifting;
+    socket.on("joinRoom", ({ roomId }) => {
+      if (rooms[roomId] && rooms[roomId].status === 'waiting') {
+        const room = rooms[roomId];
+        const usedColors = Object.values(room.players).map(p => p.name);
+        const availableColor = COLORS.find(c => !usedColors.includes(c.name)) || COLORS[Math.floor(Math.random() * COLORS.length)];
         
-        socket.broadcast.emit("playerMoved", player);
+        const newPlayer = createPlayer(socket.id, availableColor);
+        
+        room.players[socket.id] = newPlayer;
+        socketRoomMap[socket.id] = roomId;
+        socket.join(roomId);
+        
+        // Notify the joiner
+        socket.emit("roomJoined", { roomId, players: room.players, isHost: false, raceMode: room.raceMode, cpuCount: room.cpuCount });
+        
+        // Notify others in the room
+        socket.to(roomId).emit("playerJoinedRoom", newPlayer);
+      } else {
+        socket.emit("error", "Room not found or game already started");
+      }
+    });
+
+    socket.on("updateRoomSettings", ({ raceMode, cpuCount }) => {
+        const roomId = socketRoomMap[socket.id];
+        if (roomId && rooms[roomId] && rooms[roomId].hostId === socket.id) {
+            rooms[roomId].raceMode = raceMode;
+            rooms[roomId].cpuCount = cpuCount;
+            io.to(roomId).emit("roomSettingsUpdated", { raceMode, cpuCount });
+        }
+    });
+
+    socket.on("selectCar", ({ carType, color }) => {
+        const roomId = socketRoomMap[socket.id];
+        if (roomId && rooms[roomId]) {
+            const player = rooms[roomId].players[socket.id];
+            if (player) {
+                player.carType = carType;
+                if (color) player.color = color;
+                io.to(roomId).emit("playerUpdated", player);
+            }
+        }
+    });
+
+    socket.on("startGame", () => {
+      const roomId = socketRoomMap[socket.id];
+      if (roomId && rooms[roomId] && rooms[roomId].hostId === socket.id) {
+        const room = rooms[roomId];
+        room.status = 'racing';
+        
+        // Add CPU players if needed
+        if (room.cpuCount > 0) {
+            for (let i = 0; i < room.cpuCount; i++) {
+                const cpuId = `cpu_${roomId}_${i}`;
+                const usedColors = Object.values(room.players).map(p => p.name);
+                const availableColor = COLORS.find(c => !usedColors.includes(c.name)) || COLORS[Math.floor(Math.random() * COLORS.length)];
+                const cpuPlayer = createPlayer(cpuId, availableColor, 'balanced', true);
+                room.players[cpuId] = cpuPlayer;
+            }
+        }
+
+        io.to(roomId).emit("gameStarted", { players: room.players, raceMode: room.raceMode });
+      }
+    });
+
+    // Game Events (Scoped to Room)
+    socket.on("playerMovement", (movementData) => {
+      const roomId = socketRoomMap[socket.id];
+      if (roomId && rooms[roomId]) {
+        const targetId = (movementData.isCPU && rooms[roomId].hostId === socket.id) ? movementData.id : socket.id;
+        const player = rooms[roomId].players[targetId];
+        if (player) {
+          player.x = movementData.x;
+          player.y = movementData.y;
+          player.angle = movementData.angle;
+          player.speed = movementData.speed;
+          player.nitro = movementData.nitro;
+          player.nitroActive = movementData.nitroActive;
+          player.drifting = movementData.drifting;
+          
+          socket.to(roomId).emit("playerMoved", player);
+        }
       }
     });
 
     socket.on("lapFinished", (lapTime) => {
-      const player = players[socket.id];
-      if (player) {
-        player.laps += 1;
-        if (lapTime < player.bestLapTime) {
-          player.bestLapTime = lapTime;
+      const roomId = socketRoomMap[socket.id];
+      if (roomId && rooms[roomId]) {
+        const player = rooms[roomId].players[socket.id];
+        if (player) {
+          player.laps += 1;
+          if (lapTime < player.bestLapTime) {
+            player.bestLapTime = lapTime;
+          }
+          player.lastLapStart = Date.now();
+          io.to(roomId).emit("lapUpdate", { id: player.id, laps: player.laps, bestLapTime: player.bestLapTime });
         }
-        io.emit("lapUpdate", { id: player.id, laps: player.laps, bestLapTime: player.bestLapTime });
       }
     });
 
     socket.on("disconnect", () => {
-      delete players[socket.id];
-      io.emit("playerDisconnected", socket.id);
-      if (Object.keys(players).filter(id => !id.startsWith('cpu_')).length === 0) {
-        // Reset game if no humans left
-        gameStatus = 'waiting';
-        Object.keys(players).forEach(id => {
-            if (id.startsWith('cpu_')) delete players[id];
-        });
+      const roomId = socketRoomMap[socket.id];
+      if (roomId && rooms[roomId]) {
+        delete rooms[roomId].players[socket.id];
+        delete socketRoomMap[socket.id];
+        
+        io.to(roomId).emit("playerDisconnected", socket.id);
+        
+        // If room is empty, delete it
+        if (Object.keys(rooms[roomId].players).length === 0) {
+          delete rooms[roomId];
+        } else if (rooms[roomId].hostId === socket.id) {
+            // Assign new host if host left
+            const newHostId = Object.keys(rooms[roomId].players)[0];
+            rooms[roomId].hostId = newHostId;
+            io.to(roomId).emit("hostMigrated", newHostId);
+        }
       }
     });
   });

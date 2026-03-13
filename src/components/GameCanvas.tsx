@@ -76,8 +76,6 @@ const isPointOnTrackMath = (x: number, y: number, buffer: number = 0): boolean =
 
 // 3D Components
 const CarModel = ({ color, isLocal, drifting, nitroActive, carType = 'balanced' }: { color: string, isLocal?: boolean, drifting?: boolean, nitroActive?: boolean, carType?: string }) => {
-  const stats = CAR_TYPES[carType as keyof typeof CAR_TYPES] || CAR_TYPES.balanced;
-  
   return (
     <group scale={[2, 2, 2]}>
       {/* Exhaust Flames when Nitro is active */}
@@ -94,30 +92,15 @@ const CarModel = ({ color, isLocal, drifting, nitroActive, carType = 'balanced' 
           <pointLight position={[0, 0, 0]} color="#44aaff" intensity={5} distance={5} />
         </group>
       )}
-      
       {/* Chassis */}
       <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[2.2, 0.4, 4.2]} />
         <meshStandardMaterial color="#111" metalness={0.8} roughness={0.2} />
       </mesh>
       
-      {/* Body Kits based on style */}
-      {stats.bodyStyle === 'wide' && (
-        <group>
-          <mesh position={[1.1, 0.5, 0]}>
-            <boxGeometry args={[0.2, 0.6, 3.8]} />
-            <meshStandardMaterial color={color} />
-          </mesh>
-          <mesh position={[-1.1, 0.5, 0]}>
-            <boxGeometry args={[0.2, 0.6, 3.8]} />
-            <meshStandardMaterial color={color} />
-          </mesh>
-        </group>
-      )}
-
-      {/* Main Body */}
+      {/* Body */}
       <mesh position={[0, 0.7, 0]} castShadow receiveShadow>
-        <boxGeometry args={stats.bodyStyle === 'sleek' ? [1.8, 0.5, 4.2] : [2, 0.6, 4]} />
+        <boxGeometry args={[2, 0.6, 4]} />
         <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
       </mesh>
 
@@ -133,47 +116,33 @@ const CarModel = ({ color, isLocal, drifting, nitroActive, carType = 'balanced' 
         <meshStandardMaterial color="#111" metalness={0.9} roughness={0.1} transparent opacity={0.8} />
       </mesh>
 
-      {/* Spoilers */}
-      {stats.spoilerType === 'high' && (
-        <group position={[0, 1.5, -1.8]}>
-          <mesh position={[0.8, -0.5, 0]}>
-              <boxGeometry args={[0.1, 1.0, 0.2]} />
-              <meshStandardMaterial color="#222" />
-          </mesh>
-          <mesh position={[-0.8, -0.5, 0]}>
-              <boxGeometry args={[0.1, 1.0, 0.2]} />
-              <meshStandardMaterial color="#222" />
-          </mesh>
-          <mesh position={[0, 0.1, 0]} rotation={[0.2, 0, 0]}>
-              <boxGeometry args={[2.4, 0.1, 1.0]} />
-              <meshStandardMaterial color={color} metalness={0.7} />
-          </mesh>
-        </group>
-      )}
-      {stats.spoilerType === 'ducktail' && (
-        <mesh position={[0, 1.1, -2.0]} rotation={[0.5, 0, 0]}>
-          <boxGeometry args={[2.0, 0.2, 0.4]} />
-          <meshStandardMaterial color={color} />
+      {/* Spoiler */}
+      <group position={[0, 1.2, -1.8]}>
+        <mesh position={[0.8, -0.2, 0]}>
+            <boxGeometry args={[0.1, 0.6, 0.2]} />
+            <meshStandardMaterial color="#222" />
         </mesh>
-      )}
-      {stats.spoilerType === 'standard' && (
-        <group position={[0, 1.2, -1.8]}>
-          <mesh position={[0.8, -0.2, 0]}>
-              <boxGeometry args={[0.1, 0.6, 0.2]} />
-              <meshStandardMaterial color="#222" />
-          </mesh>
-          <mesh position={[-0.8, -0.2, 0]}>
-              <boxGeometry args={[0.1, 0.6, 0.2]} />
-              <meshStandardMaterial color="#222" />
-          </mesh>
-          <mesh position={[0, 0.1, 0]} rotation={[0.1, 0, 0]}>
-              <boxGeometry args={[2.2, 0.1, 0.8]} />
-              <meshStandardMaterial color={color} metalness={0.7} />
-          </mesh>
-        </group>
-      )}
+        <mesh position={[-0.8, -0.2, 0]}>
+            <boxGeometry args={[0.1, 0.6, 0.2]} />
+            <meshStandardMaterial color="#222" />
+        </mesh>
+        <mesh position={[0, 0.1, 0]} rotation={[0.1, 0, 0]}>
+            <boxGeometry args={[2.2, 0.1, 0.8]} />
+            <meshStandardMaterial color={color} metalness={0.7} />
+        </mesh>
+      </group>
 
-      {/* Wheels & Rims */}
+      {/* Side Mirrors */}
+      <mesh position={[1.05, 1.0, 0.2]}>
+        <boxGeometry args={[0.2, 0.2, 0.3]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      <mesh position={[-1.05, 1.0, 0.2]}>
+        <boxGeometry args={[0.2, 0.2, 0.3]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+
+      {/* Wheels */}
       {[
         [1.1, 0.4, 1.2], [-1.1, 0.4, 1.2],
         [1.1, 0.4, -1.2], [-1.1, 0.4, -1.2]
@@ -183,10 +152,10 @@ const CarModel = ({ color, isLocal, drifting, nitroActive, carType = 'balanced' 
                 <cylinderGeometry args={[0.45, 0.45, 0.5, 24]} />
                 <meshStandardMaterial color="#111" roughness={0.8} />
             </mesh>
-            {/* Rims based on style */}
+            {/* Rims */}
             <mesh position={[pos[0] > 0 ? 0.26 : -0.26, 0, 0]} rotation={[0, 0, Math.PI/2]}>
-                <cylinderGeometry args={[0.3, 0.3, 0.05, stats.wheelStyle === 'sport' ? 5 : 12]} />
-                <meshStandardMaterial color={stats.wheelStyle === 'drift' ? "#555" : "#888"} metalness={1} roughness={0.2} />
+                <cylinderGeometry args={[0.3, 0.3, 0.05, 12]} />
+                <meshStandardMaterial color="#888" metalness={1} roughness={0.2} />
             </mesh>
         </group>
       ))}
@@ -289,89 +258,34 @@ const TrackMesh = () => {
       
       {/* Track Segments */}
       {segments.map((seg) => (
-        <group key={seg.id} position={[seg.centerX, seg.centerY, 0.1]} rotation={[0, 0, seg.angle]}>
-          <mesh receiveShadow>
-            <planeGeometry args={[seg.length, TRACK_RADIUS * 2]} />
-            <meshStandardMaterial color="#333" roughness={0.8} />
-          </mesh>
-          {/* Curbs */}
-          <mesh position={[0, TRACK_RADIUS + 0.5, 0.05]}>
-            <planeGeometry args={[seg.length, 1]} />
-            <meshStandardMaterial color="#ff3333" />
-          </mesh>
-          <mesh position={[0, -TRACK_RADIUS - 0.5, 0.05]}>
-            <planeGeometry args={[seg.length, 1]} />
-            <meshStandardMaterial color="#ff3333" />
-          </mesh>
-          {/* Barriers */}
-          <mesh position={[0, TRACK_RADIUS + 3, 1]}>
-            <boxGeometry args={[seg.length, 0.5, 2]} />
-            <meshStandardMaterial color="#444" />
-          </mesh>
-          <mesh position={[0, -TRACK_RADIUS - 3, 1]}>
-            <boxGeometry args={[seg.length, 0.5, 2]} />
-            <meshStandardMaterial color="#444" />
-          </mesh>
-        </group>
+        <mesh key={seg.id} position={[seg.centerX, seg.centerY, 0.1]} rotation={[0, 0, seg.angle]} receiveShadow>
+          <planeGeometry args={[seg.length, TRACK_RADIUS * 2]} />
+          <meshStandardMaterial color="#333" roughness={0.8} />
+        </mesh>
       ))}
 
       {/* Smooth Corners */}
       {corners.map((pos, i) => (
-        <group key={i} position={[pos.x, pos.y, 0.1]}>
-          <mesh receiveShadow>
-            <circleGeometry args={[TRACK_RADIUS, 32]} />
-            <meshStandardMaterial color="#333" roughness={0.8} />
-          </mesh>
-          {/* Outer Curb */}
-          <mesh position={[0, 0, -0.01]}>
-            <ringGeometry args={[TRACK_RADIUS, TRACK_RADIUS + 1, 32]} />
-            <meshStandardMaterial color="#ff3333" />
-          </mesh>
-        </group>
+        <mesh key={i} position={[pos.x, pos.y, 0.1]} receiveShadow>
+          <circleGeometry args={[TRACK_RADIUS, 32]} />
+          <meshStandardMaterial color="#333" roughness={0.8} />
+        </mesh>
       ))}
       
       {/* Start Line */}
-      <group position={[625, 750, 0.2]}>
-        <mesh receiveShadow castShadow>
-          <boxGeometry args={[15, TRACK_RADIUS * 2 + 2, 0.2]} />
-          <meshStandardMaterial color="#222" />
-        </mesh>
-        {/* Checkered Pattern */}
-        <group position={[0, 0, 0.11]}>
-            {Array.from({length: 12}).map((_, i) => (
-                <group key={i} position={[0, (i - 5.5) * (TRACK_RADIUS * 2 / 10), 0]}>
-                    <mesh position={[-3.75, 0, 0]}>
-                        <planeGeometry args={[7.5, TRACK_RADIUS * 2 / 10]} />
-                        <meshStandardMaterial color={i % 2 === 0 ? "white" : "black"} />
-                    </mesh>
-                    <mesh position={[3.75, 0, 0]}>
-                        <planeGeometry args={[7.5, TRACK_RADIUS * 2 / 10]} />
-                        <meshStandardMaterial color={i % 2 === 0 ? "black" : "white"} />
-                    </mesh>
-                </group>
-            ))}
-        </group>
-        {/* Flags */}
-        <group position={[0, TRACK_RADIUS + 5, 0]}>
-            <mesh position={[0, 5, 0]}>
-                <cylinderGeometry args={[0.2, 0.2, 10]} />
-                <meshStandardMaterial color="#888" />
-            </mesh>
-            <mesh position={[2, 8, 0]} rotation={[0, 0, 0.2]}>
-                <planeGeometry args={[4, 2]} />
-                <meshStandardMaterial color="yellow" />
-            </mesh>
-        </group>
-        <group position={[0, -TRACK_RADIUS - 5, 0]}>
-            <mesh position={[0, 5, 0]}>
-                <cylinderGeometry args={[0.2, 0.2, 10]} />
-                <meshStandardMaterial color="#888" />
-            </mesh>
-            <mesh position={[2, 8, 0]} rotation={[0, 0, 0.2]}>
-                <planeGeometry args={[4, 2]} />
-                <meshStandardMaterial color="yellow" />
-            </mesh>
-        </group>
+      <mesh position={[625, 750, 0.2]} rotation={[0, 0, 0]} receiveShadow castShadow>
+        <boxGeometry args={[10, TRACK_RADIUS * 2, 0.2]} />
+        <meshStandardMaterial color="white" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Checkered Pattern on Start Line */}
+      <group position={[625, 750, 0.31]}>
+          {Array.from({length: 10}).map((_, i) => (
+              <mesh key={i} position={[0, (i - 4.5) * (TRACK_RADIUS * 2 / 10), 0]}>
+                  <planeGeometry args={[10, TRACK_RADIUS * 2 / 10]} />
+                  <meshStandardMaterial color={i % 2 === 0 ? "black" : "white"} />
+              </mesh>
+          ))}
       </group>
     </group>
   );
@@ -577,30 +491,44 @@ export default function GameCanvas({ initialPlayers, raceMode = 'circuit' }: { i
 
   useEffect(() => {
     // Socket event listeners
-    socket.on('init', ({ id, players: initialPlayers }) => {
-      setMyId(id);
-      setPlayers(initialPlayers);
+    socket.on('connect', () => {
+      setMyId(socket.id || null);
     });
 
-    socket.on('playerJoined', (player: Player) => {
-      setPlayers((prev) => ({ ...prev, [player.id]: { ...player, bestLapTime: player.bestLapTime || Infinity } }));
+    // 'currentPlayers' and 'newPlayer' are handled in Lobby now.
+    // We only need game-specific updates here.
+    
+    socket.on('playerJoinedRoom', (player: unknown) => {
+      const p = player as Player;
+      setPlayers((prev) => ({ ...prev, [p.id]: { ...p, bestLapTime: p.bestLapTime || Infinity } }));
     });
 
-    socket.on('gameStarted', ({ players: startedPlayers }) => {
-      setPlayers(startedPlayers);
-    });
-
-    socket.on('playerMoved', (player: Player) => {
+    socket.on('playerMoved', (player: unknown) => {
+      const p = player as Player;
       setPlayers((prev) => {
-        if (player.id === socket.id) return prev;
-        return { ...prev, [player.id]: { ...player, bestLapTime: player.bestLapTime || Infinity } };
+        // Don't update local player from server to avoid jitter
+        if (p.id === socket.id) return prev;
+        return { ...prev, [p.id]: { ...p, bestLapTime: p.bestLapTime || Infinity } };
       });
     });
     
     socket.on('lapUpdate', (data: {id: string, laps: number, bestLapTime: number}) => {
         setPlayers(prev => {
             if (!prev[data.id]) return prev;
+            
+            // If server sends null/0 (from Infinity), treat as Infinity
             const serverBest = data.bestLapTime || Infinity;
+            
+            // If this is local player, only update if server time is BETTER or EQUAL to local time
+            // This prevents overwriting optimistic update with stale server data
+            if (data.id === socket.id) {
+                 const currentBest = prev[data.id].bestLapTime || Infinity;
+                 if (serverBest > currentBest && currentBest !== Infinity) {
+                     // Server sent worse time than we have locally? Ignore it.
+                     return prev;
+                 }
+            }
+
             return {
                 ...prev,
                 [data.id]: {
@@ -621,9 +549,8 @@ export default function GameCanvas({ initialPlayers, raceMode = 'circuit' }: { i
     });
 
     return () => {
-      socket.off('init');
-      socket.off('playerJoined');
-      socket.off('gameStarted');
+      socket.off('connect');
+      socket.off('playerJoinedRoom');
       socket.off('playerMoved');
       socket.off('playerDisconnected');
       socket.off('lapUpdate');
@@ -740,6 +667,55 @@ export default function GameCanvas({ initialPlayers, raceMode = 'circuit' }: { i
       // Movement
       p.x += Math.cos(p.angle) * p.speed;
       p.y += Math.sin(p.angle) * p.speed;
+
+      // AI Logic (Only host handles AI)
+      const isHost = socket.id === Object.keys(players)[0]; // Simple host check
+      if (isHost) {
+          Object.values(players).forEach(p => {
+              if (p.isCPU) {
+                  if (!cpuPlayersRef.current[p.id]) {
+                      cpuPlayersRef.current[p.id] = { x: p.x, y: p.y, angle: p.angle, speed: p.speed };
+                  }
+                  
+                  const cpu = cpuPlayersRef.current[p.id];
+                  
+                  // Simple AI: Follow track segments
+                  let minDist = Infinity;
+                  let closestSeg = TRACK_SEGMENTS[0];
+                  TRACK_SEGMENTS.forEach(seg => {
+                      const d = distToSegment({x: cpu.x, y: cpu.y}, seg.start, seg.end);
+                      if (d < minDist) {
+                          minDist = d;
+                          closestSeg = seg;
+                      }
+                  });
+
+                  const dx = closestSeg.end.x - cpu.x;
+                  const dy = closestSeg.end.y - cpu.y;
+                  const targetAngle = Math.atan2(dy, dx);
+                  
+                  let angleDiff = targetAngle - cpu.angle;
+                  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                  
+                  cpu.angle += angleDiff * 0.05;
+                  cpu.speed = Math.min(cpu.speed + 0.04, 2.0);
+                  
+                  cpu.x += Math.cos(cpu.angle) * cpu.speed;
+                  cpu.y += Math.sin(cpu.angle) * cpu.speed;
+                  
+                  socket.emit('playerMovement', {
+                      id: p.id,
+                      x: cpu.x,
+                      y: cpu.y,
+                      angle: cpu.angle,
+                      speed: cpu.speed,
+                      nitroActive: false,
+                      isCPU: true
+                  });
+              }
+          });
+      }
 
       // Update Particles
       setParticles(prev => prev.map(pt => ({...pt, life: pt.life - 0.05})).filter(pt => pt.life > 0));
@@ -913,103 +889,76 @@ export default function GameCanvas({ initialPlayers, raceMode = 'circuit' }: { i
       </Canvas>
       
       {/* HUD Overlay */}
-      <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between">
-          {/* Top Row */}
-          <div className="flex justify-between items-start">
-              {/* Leaderboard */}
-              <div className="bg-black/60 backdrop-blur-md border border-white/10 p-6 rounded-2xl w-64 shadow-2xl">
-                  <div className="flex items-center gap-2 mb-4">
-                      <div className="w-1 h-4 bg-pink-500 rounded-full"></div>
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-white/50">Leaderboard</span>
-                  </div>
-                  <div className="space-y-3">
-                      {Object.values(players)
-                        .map(p => p as Player)
-                        .sort((a, b) => (a.bestLapTime || Infinity) - (b.bestLapTime || Infinity))
-                        .slice(0, 5)
-                        .map((p, i) => (
-                          <div key={p.id} className="flex justify-between items-center group">
-                              <div className="flex items-center gap-3">
-                                  <span className={`text-[10px] font-bold ${i === 0 ? 'text-yellow-400' : 'text-white/30'}`}>0{i+1}</span>
-                                  <span className={`text-sm font-bold truncate max-w-[100px] ${p.id === socket.id ? 'text-pink-400' : 'text-white/80'}`}>
-                                      {p.name}
-                                  </span>
-                              </div>
-                              <span className="font-mono text-[11px] text-white/40 tabular-nums">
-                                  {p.bestLapTime !== Infinity ? formatTime(p.bestLapTime) : '--:--.--'}
-                              </span>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-
-              {/* Lap & Timer */}
-              <div className="flex gap-4">
-                  <div className="bg-black/60 backdrop-blur-md border border-white/10 px-8 py-4 rounded-2xl shadow-2xl text-center min-w-[120px]">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Lap</div>
-                      <div className="text-4xl font-black italic text-white tabular-nums">
-                          {Math.min(3, (players[socket.id || '']?.laps || 0) + 1)}<span className="text-white/20 text-2xl">/3</span>
+      {/* Top Left: Leaderboard */}
+      <div className="absolute top-6 left-6 flex flex-col gap-3 pointer-events-none">
+          <div className="bg-black/50 text-white p-5 rounded-xl border border-white/10 backdrop-blur-md w-56">
+              <div className="text-xs text-slate-400 uppercase tracking-wider mb-2 font-bold">Leaderboard</div>
+              <div className="space-y-2">
+                  {Object.values(players)
+                    .map(p => p as Player)
+                    .sort((a, b) => (a.bestLapTime || Infinity) - (b.bestLapTime || Infinity))
+                    .slice(0, 5)
+                    .map((p, i) => (
+                      <div key={p.id} className="flex justify-between text-sm">
+                          <span className={`${p.id === socket.id ? 'text-yellow-400 font-bold' : 'text-slate-300'} truncate max-w-[120px]`}>
+                              {i+1}. {p.name}
+                          </span>
+                          <span className="font-mono text-slate-400">
+                              {p.bestLapTime !== Infinity ? formatTime(p.bestLapTime) : '-'}
+                          </span>
                       </div>
-                  </div>
-                  <div className="bg-black/60 backdrop-blur-md border border-white/10 px-8 py-4 rounded-2xl shadow-2xl text-center min-w-[180px]">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Current Time</div>
-                      <div ref={timerRef} className="text-4xl font-black italic text-pink-500 tabular-nums">
-                          {formatTime(Date.now() - currentLapStart)}
-                      </div>
-                  </div>
+                  ))}
               </div>
           </div>
+      </div>
 
-          {/* Bottom Row */}
-          <div className="flex justify-between items-end">
-              {/* Speed & Nitro */}
-              <div className="flex items-end gap-6">
-                  <div className="relative">
-                      <svg className="w-32 h-32 transform -rotate-90">
-                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                          <circle 
-                              cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                              strokeDasharray={364}
-                              strokeDashoffset={364 - (364 * (nitro / 100))}
-                              className="text-blue-500 transition-all duration-300"
-                          />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Nitro</span>
-                          <span className="text-2xl font-black italic text-white">{Math.floor(nitro)}%</span>
-                      </div>
-                  </div>
-
-                  <div className="bg-black/60 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-2xl min-w-[200px]">
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-2">Speedometer</div>
-                      <div className="flex items-baseline gap-2">
-                          <span className="text-6xl font-black italic text-white tabular-nums">
-                              {Math.floor(Math.abs(localPlayer.current?.speed || 0) * 80)}
-                          </span>
-                          <span className="text-xl font-black italic text-pink-500">KM/H</span>
-                      </div>
-                      <div className="mt-4 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                              className="h-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-100"
-                              style={{ width: `${Math.min(100, (Math.abs(localPlayer.current?.speed || 0) / 4) * 100)}%` }}
-                          ></div>
-                      </div>
+      {/* Top Center: Lap Timer */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-none">
+          <div className="bg-black/50 text-white px-8 py-4 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-8">
+              <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Lap</div>
+                  <div className="text-3xl font-mono font-bold text-blue-400 leading-none">
+                      {players[socket.id || '']?.laps || 0}
                   </div>
               </div>
-
-              {/* Warnings */}
-              <div className="flex flex-col gap-4 items-end">
-                  {wrongWay && (
-                      <div className="bg-red-600 text-white px-8 py-4 rounded-xl font-black italic text-2xl animate-bounce shadow-[0_0_30px_rgba(220,38,38,0.5)] uppercase tracking-tighter">
-                          Wrong Way!
-                      </div>
-                  )}
-                  {localPlayer.current?.drifting && (
-                      <div className="bg-yellow-500 text-black px-6 py-2 rounded-lg font-black italic text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)]">
-                          Drifting
-                      </div>
-                  )}
+              <div className="w-px h-12 bg-white/20"></div>
+              <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Current</div>
+                  <div ref={timerRef} className="text-3xl font-mono font-bold text-yellow-400 leading-none">
+                      {formatTime(Date.now() - currentLapStart)}
+                  </div>
               </div>
+              <div className="w-px h-12 bg-white/20"></div>
+              <div className="text-center">
+                  <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Best</div>
+                  <div className="text-2xl font-mono text-slate-300 leading-none">
+                      {players[socket.id || '']?.bestLapTime !== Infinity ? formatTime(players[socket.id || '']?.bestLapTime || 0) : '--:--'}
+                  </div>
+              </div>
+              {raceMode === 'time-trial' && (
+                  <>
+                    <div className="w-px h-12 bg-white/20"></div>
+                    <div className="text-center">
+                        <div className="text-xs text-yellow-400 uppercase tracking-wider font-bold">Time Trial</div>
+                    </div>
+                  </>
+              )}
+          </div>
+      </div>
+
+      {/* Bottom Center: Nitro Bar */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-none w-80">
+          <div className="flex justify-between text-xs text-slate-400 uppercase tracking-wider font-bold mb-2">
+              <span className={localPlayer.current.nitroActive ? "text-blue-400 animate-pulse" : ""}>
+                {localPlayer.current.nitroActive ? "BOOST ACTIVE" : "Nitro"}
+              </span>
+              <span>{Math.round(nitro)}%</span>
+          </div>
+          <div className={`w-full h-4 bg-slate-800/50 rounded-full overflow-hidden border transition-colors duration-200 ${localPlayer.current.nitroActive ? "border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]" : "border-white/20"} backdrop-blur-md`}>
+              <div 
+                className={`h-full bg-gradient-to-r from-blue-600 via-blue-400 to-cyan-300 shadow-[0_0_15px_rgba(59,130,246,0.6)] transition-all duration-100`}
+                style={{ width: `${nitro}%` }}
+              />
           </div>
       </div>
 
